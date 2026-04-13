@@ -1,2 +1,22 @@
-# Project exclude paths
-/.gradle/
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Local configuration
+local.properties
+
+# IDE - IntelliJ / Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keystore / signing
+*.jks
+*.keystore
