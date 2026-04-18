@@ -235,13 +235,6 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToReports
                     )
-                    QuickActionCard(
-                        icon = Icons.Default.ExitToApp,
-                        label = "Logout",
-                        color = Red600,
-                        modifier = Modifier.weight(1f),
-                        onClick = { showLogoutDialog = true }
-                    )
                 }
             }
 

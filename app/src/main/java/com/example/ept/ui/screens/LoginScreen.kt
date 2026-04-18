@@ -2,6 +2,7 @@ package com.example.ept.ui.screens
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,18 +30,27 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ept.ui.theme.*
 
-// Simple hardcoded admin credentials – replace with real auth when ready
+// Simple hardcoded admin/hr/emp credentials – replace with real auth when ready
 private const val ADMIN_USERNAME = "admin"
 private const val ADMIN_PASSWORD = "admin123"
+private const val HR_USERNAME = "hr"
+private const val HR_PASSWORD = "hr123"
+private const val EMP_USERNAME = "emp"
+private const val EMP_PASSWORD = "emp123"
 
 @Composable
 fun LoginScreen(onLoginSuccess: () -> Unit) {
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var isLoginMode by remember { mutableStateOf(true) }
+
+    val roles = listOf("Admin", "HR", "Employee")
+    var selectedRole by remember { mutableStateOf(roles[0]) }
 
     // Pulsing logo animation
     val logoScale = remember { Animatable(1f) }
@@ -133,16 +143,42 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Admin Login",
+                        text = if (isLoginMode) "Welcome Back" else "Create Account",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = OnBackground
                     )
                     Text(
-                        text = "Sign in to manage your workforce",
+                        text = if (isLoginMode) "Login to continue" else "Sign up to track performance",
                         fontSize = 13.sp,
                         color = Subtitle
                     )
+
+                    // Role Selection
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        roles.forEach { role ->
+                            val isSelected = selectedRole == role
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSelected) Indigo600 else Indigo50)
+                                    .clickable { selectedRole = role; errorMessage = "" }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = role,
+                                    color = if (isSelected) Color.White else Indigo600,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
 
                     // Username
                     OutlinedTextField(
@@ -193,6 +229,29 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         )
                     )
 
+                    // Confirm Password
+                    if (!isLoginMode) {
+                        OutlinedTextField(
+                            value = confirmPassword,
+                            onValueChange = { confirmPassword = it; errorMessage = "" },
+                            label = { Text("Confirm Password") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Lock, contentDescription = null)
+                            },
+                            visualTransformation = if (passwordVisible)
+                                VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Indigo600,
+                                focusedLabelColor = Indigo600,
+                                focusedLeadingIconColor = Indigo600
+                            )
+                        )
+                    }
+
                     // Error
                     if (errorMessage.isNotEmpty()) {
                         Text(
@@ -202,50 +261,62 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         )
                     }
 
-                    // Login Button
+                    // Login / Register Button
                     Button(
                         onClick = {
-                            if (username.isBlank() || password.isBlank()) {
-                                errorMessage = "Please enter username and password."
-                            } else if (username == ADMIN_USERNAME && password == ADMIN_PASSWORD) {
-                                isLoading = true
-                                onLoginSuccess()
+                            if (username.isBlank() || password.isBlank() || (!isLoginMode && confirmPassword.isBlank())) {
+                                errorMessage = "Please fill in all fields."
+                            } else if (!isLoginMode && password != confirmPassword) {
+                                errorMessage = "Passwords do not match."
                             } else {
-                                errorMessage = "Invalid credentials. Please try again."
+                                if (isLoginMode) {
+                                    val isValid = when (selectedRole) {
+                                        "Admin" -> username == ADMIN_USERNAME && password == ADMIN_PASSWORD
+                                        "HR" -> username == HR_USERNAME && password == HR_PASSWORD
+                                        "Employee" -> username == EMP_USERNAME && password == EMP_PASSWORD
+                                        else -> false
+                                    }
+
+                                    if (isValid) {
+                                        onLoginSuccess()
+                                    } else {
+                                        errorMessage = "Invalid credentials for $selectedRole"
+                                    }
+                                } else {
+                                    // Handle registration
+                                    isLoginMode = true
+                                    errorMessage = "Account created! Please login."
+                                }
                             }
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Indigo600),
-                        enabled = !isLoading
+                        colors = ButtonDefaults.buttonColors(containerColor = Indigo600)
                     ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text(
-                                text = "→  Login / Continue as Admin",
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 15.sp
-                            )
-                        }
+                        Text(
+                            text = if (isLoginMode) "Login" else "Register",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
+
+                    // Toggle Login/Register
+                    TextButton(
+                        onClick = {
+                            isLoginMode = !isLoginMode
+                            errorMessage = ""
+                        },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        Text(
+                            text = if (isLoginMode) "Don't have an account? Sign Up" else "Already have an account? Login",
+                            color = Indigo600,
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }
-
-            Spacer(Modifier.height(24.dp))
-
-            Text(
-                text = "Default credentials: admin / admin123",
-                fontSize = 12.sp,
-                color = Color.White.copy(alpha = 0.55f),
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
